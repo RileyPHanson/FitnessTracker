@@ -8,6 +8,7 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -66,12 +67,6 @@ class WeatherFragment : Fragment(), LocationListener {
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        //weather_text = view?.findViewById(R.id.weather_view)
-        //weather_text?.text = "Test"
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -81,6 +76,9 @@ class WeatherFragment : Fragment(), LocationListener {
         // Update latitude and longitude and make API call
         latitude = location.latitude
         longitude = location.longitude
+
+        // Checks to see if lat long is being updated properly
+        //Log.d("Weather", "Latitude: $latitude, Longitude: $longitude")
         getWeatherData()
         locationManager.removeUpdates(this)
     }
@@ -94,8 +92,14 @@ class WeatherFragment : Fragment(), LocationListener {
     @SuppressLint("SetTextI18n")
     private fun getWeatherData() {
         weather_text = view?.findViewById(R.id.weather_view)
+
         // Make API call to get current weather data
-        val call = weatherService.getCurrentWeather(latitude, longitude, WEATHER_API_KEY)
+
+        val call = weatherService.getCurrentWeather(latitude, longitude, WEATHER_API_KEY, "metric")
+
+        // Prints the url being sent
+        //val url = call.request().url.toString()
+        //Log.d("Weather", "URL: $url")
         call.enqueue(object : Callback<WeatherResponse> {
             override fun onResponse(
                 call: Call<WeatherResponse>,
@@ -108,8 +112,8 @@ class WeatherFragment : Fragment(), LocationListener {
                     weather_text?.text = weatherText
                 }
                 else {
-                    // This will get displayed
                     weather_text?.text = "Something is wrong"
+                    Log.e("Weather", "Error: ${response.code()}")
                 }
             }
 

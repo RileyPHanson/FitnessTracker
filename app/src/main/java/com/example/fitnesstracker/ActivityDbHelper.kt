@@ -79,6 +79,17 @@ class ActivityDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NA
         return db.delete(TABLE_NAME,"ID = ?", arrayOf(id))
     }
 
+    fun deleteAllData() {
+        // Get a reference to the writable database
+        val db = this.writableDatabase
+
+        // Delete all data from the table
+        db.delete(TABLE_NAME, null, null)
+
+        // Close the database connection
+        db.close()
+    }
+
     val viewAllData : Cursor
         get() {
             val db = this.writableDatabase

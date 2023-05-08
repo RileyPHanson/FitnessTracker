@@ -1,11 +1,8 @@
 package com.example.fitnesstracker.ui.activity_log
 
-import android.annotation.SuppressLint
-import android.content.ContentValues.TAG
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +11,7 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -21,16 +19,14 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.fitnesstracker.ActivityDbHelper
 import com.example.fitnesstracker.LoggedActivity
 import com.example.fitnesstracker.MyRecyclerAdapter
-import com.example.fitnesstracker.R
 import com.example.fitnesstracker.databinding.FragmentActivityLogBinding
-import com.google.android.gms.auth.api.Auth
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.android.gms.fitness.Fitness
 import com.google.android.gms.fitness.FitnessOptions
 import com.google.android.gms.fitness.data.DataType
 import com.google.android.gms.fitness.data.Session
-import java.util.concurrent.TimeUnit
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.ArrayList
 
 
 class ActivityLogFragment : Fragment() {
@@ -42,6 +38,9 @@ class ActivityLogFragment : Fragment() {
     private val binding get() = _binding!!
     private var session: Session? = null
     private var inSession: Boolean = false
+    private var startTime: Long = 0
+    private var endTime: Long = 0
+
 
     private val fitnessOption = FitnessOptions.builder()
         .addDataType(DataType.TYPE_DISTANCE_DELTA, FitnessOptions.ACCESS_WRITE)
@@ -53,7 +52,7 @@ class ActivityLogFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        thiscontext = container!!.context;
+        thiscontext = container!!.context
         val dashboardViewModel =
             ViewModelProvider(this)[ActivityLogViewModel::class.java]
 
@@ -67,11 +66,14 @@ class ActivityLogFragment : Fragment() {
                 endSession()
             }
         }
+        // Remember add this line
 
         return binding.root
     }
+
     private fun startSession() {
         // Check if user is authenticated for Google Play Services
+        /*
         val account = GoogleSignIn.getAccountForExtension(requireContext(), fitnessOption)
         if (!GoogleSignIn.hasPermissions(account, fitnessOption)) {
             GoogleSignIn.requestPermissions(
@@ -82,20 +84,38 @@ class ActivityLogFragment : Fragment() {
             )
             return
         }
+
+         */
         inSession = true
         Toast.makeText(context, "Activity session started!", Toast.LENGTH_SHORT).show()
 
         // Create new session and start recording data
 
+        // Start recording the time
+        startTime = System.currentTimeMillis()
     }
 
 
     private fun endSession() {
         inSession = false
-        Toast.makeText(context, "Activity session started!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Activity session ended!", Toast.LENGTH_SHORT).show()
+        val dbHelper = ActivityDbHelper(thiscontext)
+
+        // Calculate the time
+        endTime = System.currentTimeMillis()
+        val tDelta: Long = endTime - startTime
+        var elapsedSeconds: Double = (tDelta / 1000.0) / 60
+        val formattedMinutes = String.format("%.2f", elapsedSeconds)
+
+        // Get the date
+        val calendar: Calendar = Calendar.getInstance()
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd")
+        val currentDate: String = dateFormat.format(calendar.getTime())
+
+        // Add session info to the database
+        dbHelper.insertData("Dist", currentDate, formattedMinutes)
+        //createFromDb()
     }
-
-
 
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -135,12 +155,11 @@ class ActivityLogFragment : Fragment() {
         val cursor = dbHelper.viewAllData
 
         while (cursor.moveToNext()){
-            val activity = LoggedActivity("Date: ${cursor.getString(1)}", " Time Elapsed: ${cursor.getString(2)}", "Distance: ${cursor.getString(3)}")
+            val activity = LoggedActivity("Date: ${cursor.getString(2)}", " Time Elapsed: ${cursor.getString(3)}", "Distance: ${cursor.getString(1)}")
             activities.add(activity)
         }
         return activities
     }
-
 
     override fun onDestroyView() {
         super.onDestroyView()
