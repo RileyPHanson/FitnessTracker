@@ -16,6 +16,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.fitnesstracker.ActivityDbHelper
 import com.example.fitnesstracker.LoggedActivity
 import com.example.fitnesstracker.MyRecyclerAdapter
@@ -47,6 +48,8 @@ class ActivityLogFragment : Fragment() {
         .addDataType(DataType.TYPE_ACTIVITY_SEGMENT, FitnessOptions.ACCESS_WRITE)
         .build()
 
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -66,6 +69,12 @@ class ActivityLogFragment : Fragment() {
                 endSession()
             }
         }
+
+        swipeRefreshLayout = binding.swipeRefreshLayout
+        swipeRefreshLayout.setOnRefreshListener {
+            refreshRecyclerView()
+        }
+
         // Remember add this line
 
         return binding.root
@@ -149,6 +158,7 @@ class ActivityLogFragment : Fragment() {
 
     }
 
+    // Build recyclerView from database
     private fun createFromDb() : ArrayList<LoggedActivity>{
         val dbHelper = ActivityDbHelper(thiscontext)
         val activities = ArrayList<LoggedActivity>()
@@ -159,6 +169,16 @@ class ActivityLogFragment : Fragment() {
             activities.add(activity)
         }
         return activities
+    }
+
+    // Used for swipe to refresh
+    private fun refreshRecyclerView() {
+        val recyclerView: RecyclerView = binding.recyclerView
+
+        // Build the recyclerView from the database
+        recyclerView.adapter = MyRecyclerAdapter(createFromDb())
+
+        swipeRefreshLayout.isRefreshing = false
     }
 
     override fun onDestroyView() {
